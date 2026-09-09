@@ -1,5 +1,5 @@
 
-# DDNet / Teeworlds LSD Effect
+# 🍃 DDNet / Teeworlds LSD Effect
 
 **A simple LSD screen effect component with hue-cycling and screen wobble for DDNet clients.**
 <img src="https://media.tenor.com/Ylqui-QhuO0AAAAC/pikachu-drool.gif" width="1000">
@@ -53,7 +53,7 @@ CLsdEffect m_LsdEffect;
 Add near where other components are pushed (e.g. after `&m_Camera`):
 
 ```cpp
-m_vpAll.push_back(&m_LsdEffect);
+m_vpAll.push_back(&m_LsdEffect);  // end of wherever &m_Camera etc. are pushed
 ```
 
 ### 5. game/client/components/camera.cpp
