@@ -265,7 +265,7 @@ void CLsdEffect::RenderTintOverlay()
     float Width = Graphics()->ScreenWidth();
     float Height = Graphics()->ScreenHeight();
 
-    Graphics()->MapScreen(0, 0, Width, Height);
+    Graphics()->MapScreenToSize(Width, Height);
 
     Graphics()->TextureSet(m_TintTexture[m_ActiveTexture]);
     Graphics()->BlendNormal();
