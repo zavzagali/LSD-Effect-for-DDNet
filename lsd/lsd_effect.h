@@ -51,6 +51,7 @@ class CLsdEffect : public CComponent
 	static void ConSpeed(IConsole::IResult *pResult, void *pUserData);
 	static void ConIntensity(IConsole::IResult *pResult, void *pUserData);
 	static void ConWobble(IConsole::IResult *pResult, void *pUserData);
+	static void ConWobbleSpeed(IConsole::IResult *pResult, void *pUserData);
 	static void ConBreathe(IConsole::IResult *pResult, void *pUserData);
 
 public:
