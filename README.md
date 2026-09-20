@@ -90,11 +90,12 @@ cmake -Bbuild -GNinja && cmake --build build
 ## Usage
 
 ```
-lsd_toggle          # turn the effect on/off
-lsd_speed 1.0       # faster hue cycling
-lsd_intensity 0.15  # stronger tint
-lsd_wobble 0.08     # screen zoom breathing
-lsd_breathe 0.2     # effect zoom breathing
+lsd_toggle              # turn the effect on/off
+lsd_speed 1.0           # faster hue cycling
+lsd_intensity 0.15      # stronger tint
+lsd_wobble 0.08         # screen zoom breathing
+lsd_wobble_speed 0.02   # screen zoom breathing speed
+lsd_breathe 0.2         # effect zoom breathing
 ```
 
 Bind a key for convenience: `bind l lsd_toggle`
