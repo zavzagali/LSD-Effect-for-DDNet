@@ -18,6 +18,8 @@ void CLsdEffect::OnConsoleInit()
        "Set tint overlay strength 0..1 (default 0.15)");
     Console()->Register("lsd_wobble", "?f", CFGFLAG_CLIENT, ConWobble, this,
        "Set zoom-breathing amount 0..1 (default 0.08)");
+    Console()->Register("lsd_wobble_speed", "?f", CFGFLAG_CLIENT, ConWobbleSpeed, this,
+       "Set wobble speed 0..4.2 (default 0.6)");
     Console()->Register("lsd_breathe", "?f", CFGFLAG_CLIENT, ConBreathe, this,
        "Set pattern breathing amount 0..1, independent of lsd_wobble (default 0.2)");
 }
@@ -309,6 +311,12 @@ void CLsdEffect::ConWobble(IConsole::IResult *pResult, void *pUserData)
        pSelf->m_WobbleAmount = pResult->GetFloat(0);
 }
 
+void CLsdEffect::ConWobbleSpeed(IConsole::IResult *pResult, void *pUserData)
+{
+    CLsdEffect *pSelf = (CLsdEffect *)pUserData;
+    if(pResult->NumArguments())
+        pSelf->m_WobbleSpeed = pResult->GetFloat(0);
+}
 void CLsdEffect::ConBreathe(IConsole::IResult *pResult, void *pUserData)
 {
     CLsdEffect *pSelf = (CLsdEffect *)pUserData;
