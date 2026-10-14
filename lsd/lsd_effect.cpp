@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 
 #include <engine/console.h>
@@ -33,6 +34,9 @@ void CLsdEffect::OnRender()
 {
     if(!m_Enabled)
     {
+       // Free GPU memory while disabled instead of holding a stale texture.
+       if(m_TexValid)
+          DestroyTexture();
        m_Time = 0.0f;
        m_WasEnabled = false;
        return;
@@ -77,15 +81,11 @@ void CLsdEffect::HSVtoRGB(float h, float s, float v, float &r, float &g, float &
 
 void CLsdEffect::DestroyTexture()
 {
-    for(int i = 0; i < 2; i++)
+    if(m_TexValid)
     {
-        if(m_TexValid[i])
-        {
-            Graphics()->UnloadTexture(&m_TintTexture[i]);
-            m_TexValid[i] = false;
-        }
+        Graphics()->UnloadTexture(&m_TintTexture);
+        m_TexValid = false;
     }
-    std::vector<unsigned char>().swap(m_TexData);
 }
 
 void CLsdEffect::BuildLookupTables()
@@ -117,9 +117,6 @@ void CLsdEffect::BuildLookupTables()
 
 void CLsdEffect::UpdateTintTexture()
 {
-    if(m_TexData.empty())
-       m_TexData.assign(TEX_SIZE * TEX_SIZE * 4, 0);
-
     BuildLookupTables();
 
     if(m_Time - m_LastModeSwitch > 8.0f && m_TransitionProgress >= 1.0f)
@@ -188,6 +185,14 @@ void CLsdEffect::UpdateTintTexture()
     const bool InTransition = m_TransitionProgress < 1.0f;
     const float Blend = InTransition ? (1.0f - std::cos(m_TransitionProgress * 3.14159265f)) * 0.5f : 0.0f;
 
+    // Allocate with malloc: ownership is moved to the graphics thread via
+    // LoadTextureRawMove (zero-copy). The backend frees it after upload,
+    // so we must NOT free pPixels on success (Image.m_pData becomes null).
+    const size_t DataSize = (size_t)TEX_SIZE * (size_t)TEX_SIZE * 4;
+    uint8_t *pPixels = (uint8_t *)malloc(DataSize);
+    if(pPixels == nullptr)
+        return;
+
     for(int y = 0; y < TEX_SIZE; y++)
     {
         for(int x = 0; x < TEX_SIZE; x++)
@@ -223,45 +228,51 @@ void CLsdEffect::UpdateTintTexture()
                 FinalAlpha = AlphaCurr * (1.0f - Blend) + AlphaNext * Blend;
             }
 
-            int Offset = (y * TEX_SIZE + x) * 4;
-            m_TexData[Offset + 0] = (unsigned char)(std::clamp(FinalR, 0.0f, 1.0f) * 255.0f);
-            m_TexData[Offset + 1] = (unsigned char)(std::clamp(FinalG, 0.0f, 1.0f) * 255.0f);
-            m_TexData[Offset + 2] = (unsigned char)(std::clamp(FinalB, 0.0f, 1.0f) * 255.0f);
-            m_TexData[Offset + 3] = (unsigned char)(std::clamp(FinalAlpha, 0.0f, 1.0f) * 255.0f);
+            size_t Offset = ((size_t)y * (size_t)TEX_SIZE + (size_t)x) * 4;
+            pPixels[Offset + 0] = (uint8_t)(std::clamp(FinalR, 0.0f, 1.0f) * 255.0f);
+            pPixels[Offset + 1] = (uint8_t)(std::clamp(FinalG, 0.0f, 1.0f) * 255.0f);
+            pPixels[Offset + 2] = (uint8_t)(std::clamp(FinalB, 0.0f, 1.0f) * 255.0f);
+            pPixels[Offset + 3] = (uint8_t)(std::clamp(FinalAlpha, 0.0f, 1.0f) * 255.0f);
         }
     }
 
-    int TargetSlot = 1 - m_ActiveTexture;
-
+    // NOTE: stock IGraphics has no RGBA sub-update (glTexSubImage wrapper).
+    // UpdateTextTexture() only works for R-channel glyph textures, so it
+    // can't be used here. Single-handle Unload+LoadMove is the cheapest
+    // correct path: 1 GPU alloc + 1 free per 50ms tick, zero CPU-side copy.
     CImageInfo Image;
     Image.m_Width = TEX_SIZE;
     Image.m_Height = TEX_SIZE;
     Image.m_Format = CImageInfo::FORMAT_RGBA;
-    Image.m_pData = m_TexData.data();
+    Image.m_pData = pPixels;
 
-    if(m_TexValid[TargetSlot])
+    // Unload the previous frame BEFORE creating the new one so peak VRAM
+    // stays at ~1 texture instead of 2 (old double-buffer held both).
+    if(m_TexValid)
     {
-        Graphics()->UnloadTexture(&m_TintTexture[TargetSlot]);
-        m_TexValid[TargetSlot] = false;
+        Graphics()->UnloadTexture(&m_TintTexture);
+        m_TexValid = false;
     }
 
-    m_TintTexture[TargetSlot] = Graphics()->LoadTextureRaw(Image, 0);
-    m_TexValid[TargetSlot] = m_TintTexture[TargetSlot].IsValid();
-
-    if(m_TexValid[TargetSlot])
-       m_ActiveTexture = TargetSlot; 
+    m_TintTexture = Graphics()->LoadTextureRawMove(Image, 0);
+    m_TexValid = m_TintTexture.IsValid();
+    if(Image.m_pData != nullptr)
+    {
+        // Move didn't take ownership (e.g. load failed) -> free ourselves.
+        free(Image.m_pData);
+        Image.m_pData = nullptr;
+    }
 }
 
 void CLsdEffect::RenderTintOverlay()
 {
-    bool AnyTextureValid = m_TexValid[0] || m_TexValid[1];
-    if(!AnyTextureValid || m_Time - m_LastUpdateTime >= UPDATE_INTERVAL)
+    if(!m_TexValid || m_Time - m_LastUpdateTime >= UPDATE_INTERVAL)
     {
         UpdateTintTexture();
         m_LastUpdateTime = m_Time;
     }
 
-    if(!m_TexValid[m_ActiveTexture])
+    if(!m_TexValid)
        return; 
 
     float Width = Graphics()->ScreenWidth();
@@ -269,7 +280,7 @@ void CLsdEffect::RenderTintOverlay()
 
     Graphics()->MapScreenToSize(Width, Height);
 
-    Graphics()->TextureSet(m_TintTexture[m_ActiveTexture]);
+    Graphics()->TextureSet(m_TintTexture);
     Graphics()->BlendNormal();
     Graphics()->WrapClamp(); 
 
