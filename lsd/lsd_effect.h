@@ -20,12 +20,15 @@ class CLsdEffect : public CComponent
 	float m_BreatheAmount = 0.2f;
 	float m_BreatheSpeed = 0.35f;
 
-	static const int TEX_SIZE = 96; 
-	std::vector<unsigned char> m_TexData; 
+	static const int TEX_SIZE = 96;
 
-	IGraphics::CTextureHandle m_TintTexture[2];
-	bool m_TexValid[2] = {false, false};
-	int m_ActiveTexture = 0; 
+	// Single persistent texture handle. Stock DDNet IGraphics (v20.0) has NO
+	// generic RGBA sub-update (only UpdateTextTexture for R-channel glyph
+	// textures), so per-frame content change still needs Unload+Load.
+	// We minimize the cost with LoadTextureRawMove (zero-copy, backend takes
+	// ownership of the malloc'd buffer) instead of LoadTextureRaw (extra copy).
+	IGraphics::CTextureHandle m_TintTexture;
+	bool m_TexValid = false;
 
 	float m_LastUpdateTime = 0.0f;
 	static constexpr float UPDATE_INTERVAL = 1.0f / 20.0f; 
