@@ -96,6 +96,7 @@ lsd_intensity 0.15      # stronger tint
 lsd_wobble 0.08         # screen zoom breathing
 lsd_wobble_speed 0.02   # screen zoom breathing speed
 lsd_breathe 0.2         # effect zoom breathing
+lsd_breathe_speed 0.35  # effect zoom breathing speed
 ```
 
 Bind a key for convenience: `bind l lsd_toggle`
