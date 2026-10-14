@@ -23,6 +23,8 @@ void CLsdEffect::OnConsoleInit()
        "Set wobble speed 0..4.2 (default 0.6)");
     Console()->Register("lsd_breathe", "?f", CFGFLAG_CLIENT, ConBreathe, this,
        "Set pattern breathing amount 0..1, independent of lsd_wobble (default 0.2)");
+    Console()->Register("lsd_breathe_speed", "?f", CFGFLAG_CLIENT, ConBreatheSpeed, this,
+       "Set pattern breathing speed (default 0.35)");
 }
 
 void CLsdEffect::OnShutdown()
@@ -333,4 +335,10 @@ void CLsdEffect::ConBreathe(IConsole::IResult *pResult, void *pUserData)
     CLsdEffect *pSelf = (CLsdEffect *)pUserData;
     if(pResult->NumArguments())
        pSelf->m_BreatheAmount = pResult->GetFloat(0);
+}
+void CLsdEffect::ConBreatheSpeed(IConsole::IResult *pResult, void *pUserData)
+{
+    CLsdEffect *pSelf = (CLsdEffect *)pUserData;
+    if(pResult->NumArguments())
+       pSelf->m_BreatheSpeed = pResult->GetFloat(0);
 }

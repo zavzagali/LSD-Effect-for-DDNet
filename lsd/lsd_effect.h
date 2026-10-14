@@ -56,6 +56,7 @@ class CLsdEffect : public CComponent
 	static void ConWobble(IConsole::IResult *pResult, void *pUserData);
 	static void ConWobbleSpeed(IConsole::IResult *pResult, void *pUserData);
 	static void ConBreathe(IConsole::IResult *pResult, void *pUserData);
+	static void ConBreatheSpeed(IConsole::IResult *pResult, void *pUserData);
 
 public:
 	int Sizeof() const override { return sizeof(*this); }
